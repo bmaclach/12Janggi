@@ -1,11 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Model (Role, Direction, Piece(..), Player, GameState, 
-  role, position, player1, player2, turnTracker, initialState) where
+module Model (Position, Role(..), Direction(..), Piece(..), makePiece, Move, 
+  Player, GameState(..), role, position, player1, player2, turnTracker) where
 
-import Control.Lens ((^.), _1, _2, makeLenses)
-import Control.Monad.State (State, get, modify)
-import Prelude hiding (Left, Right)
+import Control.Lens ((^.), set, over, _1, _2, makeLenses)
+
+type Position = (Int, Int)
 
 data Role = Man | General | Minister | King | FeudalLord deriving (Eq, Show)
 
@@ -29,9 +29,8 @@ instance Show Piece where
 makePiece :: Int -> Role -> Int -> Int -> Piece
 makePiece i r x y = P i r (x, y)
 
+type Move = (Piece, Direction)
 type Player = [Piece]
-type Move = (Piece, Direction, Position)
-type Position = (Int, Int)
 
 -- If your turn ends and the opponent's king is in your territory, you lose
 
@@ -41,86 +40,3 @@ data GameState = GS {
   _turnTracker :: Bool
 }
 makeLenses ''GameState
-
-initialState :: GameState
-initialState = GS {
-  _player1 = [makePiece 1 Man 2 2, makePiece 2 King 1 2, 
-    makePiece 3 General 1 3, makePiece 4 Minister 1 1],
-  _player2 = [makePiece 5 Man 3 2, makePiece 6 King 4 2, 
-    makePiece 7 General 4 1, makePiece 8 Minister 4 3],
-  _turnTracker = True
-}
-
-isValidPosition :: Position -> Bool
-isValidPosition (x,y) = 0 < x < 5 && 0 < y < 4
-
-getMovableDirections :: Role -> [Direction]
-getMovableDirections Man = [Forward]
-getMovableDirections General = [Forward, Back, Right, Left]
-getMovableDirections Minister = [ForwardRight, ForwardLeft, BackRight, BackLeft]
-getMovableDirections King = [Forward, Back, Right, Left, ForwardRight,
-  ForwardLeft, BackRight, BackLeft]
-getMovableDirections FeudalLord = [Forward, Back, Right, Left, ForwardRight,
-  ForwardLeft]
-
-isForward :: Direction -> Bool
-isForward Forward = True
-isForward ForwardRight = True
-isForward ForwardLeft = True
-isForward _ = False
-
-isBack :: Direction -> Bool
-isBack Back = True
-isBack BackRight = True
-isBack BackLeft = True
-isBack _ = False
-
-xMovement :: Direction -> Int
-xMovement d
-  | isForward d = 1
-  | isBack d = -1
-  | otherwise = 0
-
-isRight :: Direction -> Bool
-isRight Right = True
-isRight ForwardRight = True
-isRight BackRight = True
-isRight _ = False
-
-isLeft :: Direction -> Bool
-isLeft Left = True
-isLeft ForwardLeft = True
-isLeft BackLeft = True
-isLeft _ = False
-
-yMovement :: Direction -> Int
-yMovement d
-  | isRight d = 1
-  | isLeft d = -1
-  | otherwise = 0
-
-getValidMoves :: State GameState [Move]
-getValidMoves = do
-  gs <- get
-  let yourTurn = gs ^. turnTracker
-      movementModifier = if yourTurn then 1 else -1
-      you = if yourTurn then gs ^. player1 else gs ^. player2
-      opponent = if yourTurn then gs ^. player2 else gs ^. player1 
-      getValidMovesForPiece :: [Move] -> Piece -> [Move]
-      getValidMovesForPiece mvs p = mvs ++ map (p,) (getPossibleDirections p)
-      getPossibleMoves :: Piece -> [(Direction, Position)]
-      getPossibleMoves (P _ r (x,y)) = let
-        direcs = getMovableDirections r
-        newPos = map (\d -> 
-          (x + (movementModifier * xMovement d), 
-          y + (movementModifier * yMovement d))) direcs
-        in [(d, p) | (d, p) <- zip direcs newPos,
-        isValidPosition p, p `notElem` map (^. position) you]
-  return $ foldl getValidMovesForPiece [] you
-
-{-
-  1  2  3  4
-1 _  _  _  _
-2 _  _  _  _
-3 _  _  _  _
--}
