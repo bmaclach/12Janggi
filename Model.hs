@@ -32,8 +32,6 @@ makePiece i r x y = P i r (x, y)
 type Move = (Piece, Direction)
 type Player = [Piece]
 
--- If your turn ends and the opponent's king is in your territory, you lose
-
 data GameState = GS {
   _player1 :: Player,
   _player2 :: Player,

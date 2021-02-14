@@ -1,18 +1,17 @@
-module Helper (getValidMoves, currentPlayer, otherPlayer) where
+module Helper (isPlaceable, getValidMoves, currentPlayer, otherPlayer, 
+  yourTerritory, enemyTerritory) where
 
 import Model
 import Control.Lens ((^.), set, over, _1)
 import Control.Monad.State (State, get)
 import Prelude hiding (Left, Right)
 
-getMovableDirections :: Role -> [Direction]
-getMovableDirections Man = [Forward]
-getMovableDirections General = [Forward, Back, Right, Left]
-getMovableDirections Minister = [ForwardRight, ForwardLeft, BackRight, BackLeft]
-getMovableDirections King = [Forward, Back, Right, Left, ForwardRight,
-  ForwardLeft, BackRight, BackLeft]
-getMovableDirections FeudalLord = [Forward, Back, Right, Left, ForwardRight,
-  ForwardLeft]
+isPlaceable :: Position -> State GameState Bool
+isPlaceable pos = do
+  gs <- get
+  let allPieces = gs ^. player1 ++ gs ^. player2
+  return $ not $ 
+    pos `elem` map (^. position) allPieces || pos ^. _1 == enemyTerritory gs
 
 getValidMoves :: State GameState [Move]
 getValidMoves = do
@@ -34,6 +33,15 @@ getValidMoves = do
         in [(p, d) | (p, d) <- zip newPos direcs,
         isValidPosition p, p `notElem` map (^. position) you]
   return $ foldl getValidMovesForPiece [] you
+
+getMovableDirections :: Role -> [Direction]
+getMovableDirections Man = [Forward]
+getMovableDirections General = [Forward, Back, Right, Left]
+getMovableDirections Minister = [ForwardRight, ForwardLeft, BackRight, BackLeft]
+getMovableDirections King = [Forward, Back, Right, Left, ForwardRight,
+  ForwardLeft, BackRight, BackLeft]
+getMovableDirections FeudalLord = [Forward, Back, Right, Left, ForwardRight,
+  ForwardLeft]
 
 isValidPosition :: Position -> Bool
 isValidPosition (x,y) = 0 < x && x < 5 && 0 < y && y < 4
@@ -79,3 +87,5 @@ yMovement d
 
 currentPlayer gs = if gs ^. turnTracker then player1 else player2
 otherPlayer gs = if gs ^. turnTracker then player2 else player1
+yourTerritory gs = if gs ^. turnTracker then 1 else 4
+enemyTerritory gs = if gs ^. turnTracker then 4 else 1
