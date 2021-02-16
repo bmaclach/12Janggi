@@ -2,11 +2,12 @@ module Main where
 
 import Model
 import Controller
+import View
 import Control.Lens
 import Control.Monad.State
 
 main :: IO ()
-main = print $ initialState ^. player1
+main = runTurn initialState
 
 initialState :: GameState
 initialState = GS {

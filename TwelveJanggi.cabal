@@ -21,6 +21,7 @@ executable TwelveJanggi
   other-modules:
     Model,
     Controller,
+    View,
     Helper
   -- other-extensions:
   build-depends:      

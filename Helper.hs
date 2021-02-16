@@ -1,38 +1,36 @@
 module Helper (isPlaceable, getValidMoves, currentPlayer, otherPlayer, 
-  yourTerritory, enemyTerritory) where
+  yourTerritory, enemyTerritory, isActive) where
 
 import Model
 import Control.Lens ((^.), set, over, _1)
-import Control.Monad.State (State, get)
 import Prelude hiding (Left, Right)
 
-isPlaceable :: Position -> State GameState Bool
-isPlaceable pos = do
-  gs <- get
-  let allPieces = gs ^. player1 ++ gs ^. player2
-  return $ not $ 
-    pos `elem` map (^. position) allPieces || pos ^. _1 == enemyTerritory gs
+isPlaceable :: Position -> GameState -> Bool
+isPlaceable pos gs = let allPieces = gs ^. player1 ++ gs ^. player2
+  in not $ 
+    isValidPosition pos
+    || pos `elem` map (^. position) allPieces 
+    || pos ^. _1 == enemyTerritory gs
 
-getValidMoves :: State GameState [Move]
-getValidMoves = do
-  gs <- get
-  let yourTurn = gs ^. turnTracker
-      movementModifier = if yourTurn then 1 else -1
-      you = gs ^. currentPlayer gs
-      opponent = gs ^. otherPlayer gs
-      getValidMovesForPiece :: [Move] -> Piece -> [Move]
-      getValidMovesForPiece mvs pc = 
-        mvs ++ map (over _1 (flip (set position) pc)) (getPossibleMoves pc)
-      getPossibleMoves :: Piece -> [(Position, Direction)]
-      getPossibleMoves (P _ _ (0,0)) = []
-      getPossibleMoves (P _ r (x,y)) = let
-        direcs = getMovableDirections r
-        newPos = map (\d -> 
-          (x + (movementModifier * xMovement d), 
-          y + (movementModifier * yMovement d))) direcs
-        in [(p, d) | (p, d) <- zip newPos direcs,
-        isValidPosition p, p `notElem` map (^. position) you]
-  return $ foldl getValidMovesForPiece [] you
+getValidMoves :: GameState -> [Move]
+getValidMoves gs = let
+  yourTurn = gs ^. turnTracker
+  movementModifier = if yourTurn then 1 else -1
+  you = gs ^. currentPlayer gs
+  opponent = gs ^. otherPlayer gs
+  getValidMovesForPiece :: [Move] -> Piece -> [Move]
+  getValidMovesForPiece mvs pc = 
+    mvs ++ map (over _1 (flip (set position) pc)) (getPossibleMoves pc)
+  getPossibleMoves :: Piece -> [(Position, Direction)]
+  getPossibleMoves (P _ _ (0,0)) = []
+  getPossibleMoves (P _ r (x,y)) = let
+    direcs = getMovableDirections r
+    newPos = map (\d -> 
+      (x + (movementModifier * xMovement d), 
+      y + (movementModifier * yMovement d))) direcs
+    in [(p, d) | (p, d) <- zip newPos direcs,
+    isValidPosition p, p `notElem` map (^. position) you]
+  in foldl getValidMovesForPiece [] you
 
 getMovableDirections :: Role -> [Direction]
 getMovableDirections Man = [Forward]
