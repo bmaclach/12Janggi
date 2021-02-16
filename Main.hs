@@ -5,9 +5,12 @@ import Controller
 import View
 import Control.Lens
 import Control.Monad.State
+import System.IO
 
 main :: IO ()
-main = runTurn initialState
+main = do
+  hSetBuffering stdout NoBuffering
+  runTurn initialState
 
 initialState :: GameState
 initialState = GS {
