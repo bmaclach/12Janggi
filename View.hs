@@ -8,7 +8,7 @@ import Control.Monad (unless, forM_)
 import Control.Monad.State (runState)
 import Control.Lens ((^.))
 import Data.Maybe (isJust)
-import Data.List (partition)
+import Data.List (find, nub, partition)
 
 runTurn :: GameState -> IO ()
 runTurn gs = do
@@ -40,7 +40,10 @@ requestPlace :: GameState -> IO ()
 requestPlace gs = 
   let captives = filter (not . isActive) (gs ^. currentPlayer gs)
   in do
-    pc <- requestSelection captives "Which piece do you want to place?"
+    rol <- requestSelection (nub $ map (^. role) captives) "Which piece do you want to place?"
+    let pc = getPiece $ find ((== rol) . (^. role)) captives
+        getPiece Nothing = error "Code error: No captive for chosen role"
+        getPiece (Just p) = p
     pos <- requestPosition gs
     let (result, newState) = runState (executePlace pc pos) gs
     unless (isJust result) $ runTurn newState
@@ -68,9 +71,9 @@ requestSelection cs msg = do
     putStrLn "Invalid input. Try again."
     requestSelection cs msg
 
-requestPosition :: GameState -> IO Position
-requestPosition gs = do
-  putStrLn "Where do you want to place the piece?"
+requestPosition :: Role -> GameState -> IO Position
+requestPosition rl gs = do
+  putStrLn "Where do you want to place the " ++ show rl ++ "?"
   x <- requestXCoord
   y <- requestYCoord
   let pos = (x,y)
@@ -78,7 +81,7 @@ requestPosition gs = do
     return pos 
   else do
     putStrLn "Invalid position. Try again."
-    requestPosition gs
+    requestPosition rl gs
 
 requestXCoord :: IO Int
 requestXCoord = do

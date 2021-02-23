@@ -7,7 +7,7 @@ import Control.Lens ((^.), set, over, _1, _2)
 import Data.List (delete, find, nub)
 
 executeMove :: Move -> State GameState (Maybe Bool)
-executeMove (pc, _) = do
+executeMove (Mv pc _) = do
   modify (updatePosition pc)
   capturePieces $ pc ^. position
   promoteMan

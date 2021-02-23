@@ -7,10 +7,9 @@ import Prelude hiding (Left, Right)
 
 isPlaceable :: Position -> GameState -> Bool
 isPlaceable pos gs = let allPieces = gs ^. player1 ++ gs ^. player2
-  in not $ 
-    isValidPosition pos
-    || pos `elem` map (^. position) allPieces 
-    || pos ^. _1 == enemyTerritory gs
+  in isValidPosition pos && not 
+    (pos `elem` map (^. position) allPieces 
+    || pos ^. _1 == enemyTerritory gs)
 
 getValidMoves :: GameState -> [Move]
 getValidMoves gs = let
@@ -20,7 +19,7 @@ getValidMoves gs = let
   opponent = gs ^. otherPlayer gs
   getValidMovesForPiece :: [Move] -> Piece -> [Move]
   getValidMovesForPiece mvs pc = 
-    mvs ++ map (over _1 (flip (set position) pc)) (getPossibleMoves pc)
+    mvs ++ (map (uncurry Mv . over _1 (flip (set position) pc)) (getPossibleMoves pc))
   getPossibleMoves :: Piece -> [(Position, Direction)]
   getPossibleMoves (P _ _ (0,0)) = []
   getPossibleMoves (P _ r (x,y)) = let
